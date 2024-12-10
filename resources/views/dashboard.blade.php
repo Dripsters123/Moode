@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Mood-Based Music Finder</title>
+    <title>Spotify Mood-Based Playlist Finder</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="/style.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -24,20 +24,20 @@
                 </div>
             </div>
             <div class="form-group row">
-                <button type="submit" id="btn_submit" class="btn btn-success col-sm-12">Find Music</button>
+                <button type="submit" id="btn_submit" class="btn btn-success col-sm-12">Find Playlists</button>
             </div>
         </form>
         <div class="row">
             <div class="col-sm-6">
-                <div class="list-group song-list"></div>
+                <div class="list-group playlist-list"></div>
             </div>
-            <div class="offset-md-1 col-sm-4" id="song-detail"></div>
+            <div class="offset-md-1 col-sm-4" id="playlist-detail"></div>
         </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-    <script src="/spotify.js"></script>
+    <script src="spotify.js"></script>
 </body>
 </html>

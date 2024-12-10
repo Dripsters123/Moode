@@ -2,7 +2,6 @@ const APIController = (function() {
     const clientId = '0a5168c0671c4c92a545cdabceebb87c';
     const clientSecret = 'f5aea80eb2a94567913aab3f9b7759a5';
 
-    // Private methods
     const _getToken = async () => {
         const result = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
@@ -17,18 +16,18 @@ const APIController = (function() {
         return data.access_token;
     };
 
-    const _searchTracks = async (token, query) => {
-        const result = await fetch(`https://api.spotify.com/v1/search?q=${query}&type=track&limit=10`, {
+    const _searchPlaylists = async (token, query) => {
+        const result = await fetch(`https://api.spotify.com/v1/search?q=${query}&type=playlist&limit=20`, {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + token }
         });
 
         const data = await result.json();
-        return data.tracks.items;
+        return data.playlists.items;
     };
 
-    const _getTrack = async (token, trackEndpoint) => {
-        const result = await fetch(trackEndpoint, {
+    const _getPlaylistDetails = async (token, playlistId) => {
+        const result = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -41,11 +40,11 @@ const APIController = (function() {
         getToken() {
             return _getToken();
         },
-        searchTracks(token, query) {
-            return _searchTracks(token, query);
+        searchPlaylists(token, query) {
+            return _searchPlaylists(token, query);
         },
-        getTrack(token, trackEndpoint) {
-            return _getTrack(token, trackEndpoint);
+        getPlaylistDetails(token, playlistId) {
+            return _getPlaylistDetails(token, playlistId);
         }
     };
 })();
@@ -54,8 +53,8 @@ const UIController = (function() {
     const DOMElements = {
         selectMood: '#select_mood',
         buttonSubmit: '#btn_submit',
-        divSonglist: '.song-list',
-        divSongDetail: '#song-detail',
+        divPlaylistList: '.playlist-list',
+        divPlaylistDetail: '#playlist-detail',
         hfToken: '#hidden_token'
     };
 
@@ -64,34 +63,38 @@ const UIController = (function() {
             return {
                 mood: document.querySelector(DOMElements.selectMood),
                 submit: document.querySelector(DOMElements.buttonSubmit),
-                tracks: document.querySelector(DOMElements.divSonglist),
-                songDetail: document.querySelector(DOMElements.divSongDetail)
+                playlists: document.querySelector(DOMElements.divPlaylistList),
+                playlistDetail: document.querySelector(DOMElements.divPlaylistDetail)
             };
         },
 
-        createTrack(id, name) {
-            const html = `<a href="#" class="list-group-item list-group-item-action" id="${id}">${name}</a>`;
-            document.querySelector(DOMElements.divSonglist).insertAdjacentHTML('beforeend', html);
+        createPlaylist(id, name, imageUrl) {
+            const html = `
+                <a href="#" class="list-group-item list-group-item-action" id="${id}">
+                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Cover" class="img-thumbnail mr-2" style="width:50px; height:50px;">
+                    ${name}
+                </a>`;
+            document.querySelector(DOMElements.divPlaylistList).insertAdjacentHTML('beforeend', html);
         },
 
-        createTrackDetail(img, title, artist) {
-            const detailDiv = document.querySelector(DOMElements.divSongDetail);
+        createPlaylistDetail(imageUrl, name, description) {
+            const detailDiv = document.querySelector(DOMElements.divPlaylistDetail);
             detailDiv.innerHTML = `
                 <div>
-                    <img src="${img}" alt="Track Image">
-                    <h5>${title}</h5>
-                    <p>By: ${artist}</p>
+                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Image" style="width:100%;">
+                    <h5>${name}</h5>
+                    <p>${description || 'No description available.'}</p>
                 </div>
             `;
         },
 
-        resetTrackDetail() {
-            this.inputField().songDetail.innerHTML = '';
+        resetPlaylistDetail() {
+            this.inputField().playlistDetail.innerHTML = '';
         },
 
-        resetTracks() {
-            this.inputField().tracks.innerHTML = '';
-            this.resetTrackDetail();
+        resetPlaylists() {
+            this.inputField().playlists.innerHTML = '';
+            this.resetPlaylistDetail();
         },
 
         storeToken(value) {
@@ -107,36 +110,63 @@ const UIController = (function() {
 const APPController = (function(UICtrl, APICtrl) {
     const DOMInputs = UICtrl.inputField();
 
-    // Defining the query based on moods
+    // Expanded mood options
     const moodQueries = {
-        happy: 'danceability:0.7 energy:0.8 valence:0.6',
-        sad: 'valence:0.2 acousticness:0.8',
-        energetic: 'energy:0.9 danceability:0.8',
-        calm: 'acousticness:0.8 instrumentalness:0.7'
+        happy: 'happy',
+        sad: 'sad',
+        energetic: 'energetic upbeat',
+        calm: 'calm relaxation',
+        romantic: 'romantic love',
+        focus: 'focus concentration',
+        party: 'party dance',
+        workout: 'workout exercise'
     };
 
-    const loadTracks = async (mood) => {
+    const loadPlaylists = async (mood) => {
         const token = UICtrl.getStoredToken();
         const query = moodQueries[mood];
-        const tracks = await APICtrl.searchTracks(token, query);
-        UICtrl.resetTracks();
-        tracks.forEach(track => UICtrl.createTrack(track.href, track.name));
+        const playlists = await APICtrl.searchPlaylists(token, query);
+
+        UICtrl.resetPlaylists();
+
+        if (playlists && playlists.length > 0) {
+            playlists.forEach(playlist => {
+                if (playlist && playlist.id && playlist.name) {
+                    const imageUrl = playlist.images?.[0]?.url || 'placeholder.jpg';
+                    UICtrl.createPlaylist(playlist.id, playlist.name, imageUrl);
+                }
+            });
+        } else {
+            UICtrl.inputField().playlists.innerHTML = `
+                <p class="text-muted">No playlists found for this mood. Please try another mood.</p>
+            `;
+        }
     };
 
     DOMInputs.submit.addEventListener('click', async (e) => {
         e.preventDefault();
         const mood = DOMInputs.mood.value;
         if (mood !== 'select') {
-            loadTracks(mood);
+            await loadPlaylists(mood);
         }
     });
 
-    DOMInputs.tracks.addEventListener('click', async (e) => {
+    DOMInputs.playlists.addEventListener('click', async (e) => {
         e.preventDefault();
         const token = UICtrl.getStoredToken();
-        const trackEndpoint = e.target.id;
-        const track = await APICtrl.getTrack(token, trackEndpoint);
-        UICtrl.createTrackDetail(track.album.images[0].url, track.name, track.artists[0].name);
+        const playlistId = e.target.closest('a')?.id;
+
+        if (playlistId) {
+            const playlist = await APICtrl.getPlaylistDetails(token, playlistId);
+
+            if (playlist) {
+                UICtrl.createPlaylistDetail(
+                    playlist.images?.[0]?.url || 'placeholder.jpg',
+                    playlist.name,
+                    playlist.description || 'No description available.'
+                );
+            }
+        }
     });
 
     return {
