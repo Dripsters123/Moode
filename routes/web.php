@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SpotifyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('dashboard');  // Redirect to dashboard
+    return redirect()->route('dashboard');
 });
 
 Route::get('/dashboard', function () {
