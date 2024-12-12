@@ -8,8 +8,18 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-8">
-                <!-- Form -->
-                <form class="space-y-6">
+                <!-- Mood Search Mode Selector -->
+                <div class="flex space-x-4 mb-6">
+                    <button id="btn-category-mode" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">
+                        Mood Categories
+                    </button>
+                    <button id="btn-camera-mode" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">
+                        Camera Mood Detection
+                    </button>
+                </div>
+
+                <!-- Form for Mood Category Selection -->
+                <form id="category-form" class="space-y-6">
                     <input type="hidden" id="hidden_token">
                     <div class="mb-4">
                         <label for="select_mood" class="block text-gray-700 text-lg font-medium">Mood:</label>
@@ -29,6 +39,14 @@
                     </div>
                 </form>
 
+                <!-- Camera Mood Detection -->
+                <div id="camera-container" style="display:none;">
+                    <video id="video" width="640" height="480" autoplay></video>
+                    <button id="btn-capture" class="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors mt-4">
+                        Detect Mood via Camera
+                    </button>
+                </div>
+
                 <!-- Playlist Section -->
                 <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 playlist-list-container">
                     <div class="playlist-list flex space-x-4"></div>
@@ -36,7 +54,6 @@
 
                 <!-- Playlist Detail Section -->
                 <div id="playlist-detail" class="mt-8">
-                    <!-- Back to List Button -->
                     <button id="back-to-list" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors mb-4" style="display: none;">
                         Back to Playlist List
                     </button>
@@ -45,12 +62,108 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     <script src="spotify.js"></script>
-</x-app-layout>
+    <script>
+        // Switch between modes
+        const btnCategoryMode = document.getElementById('btn-category-mode');
+        const btnCameraMode = document.getElementById('btn-camera-mode');
+        const categoryForm = document.getElementById('category-form');
+        const cameraContainer = document.getElementById('camera-container');
+        const selectMood = document.getElementById('select_mood');
 
+        // Show category mood form and hide camera mode
+        btnCategoryMode.addEventListener('click', () => {
+            categoryForm.style.display = 'block';
+            cameraContainer.style.display = 'none';
+            btnCategoryMode.classList.add('bg-blue-600');
+            btnCameraMode.classList.remove('bg-blue-600');
+        });
 
-<style>
+        // Show camera mode and hide category form
+        btnCameraMode.addEventListener('click', () => {
+            categoryForm.style.display = 'none';
+            cameraContainer.style.display = 'block';
+            btnCategoryMode.classList.remove('bg-blue-600');
+            btnCameraMode.classList.add('bg-blue-600');
+        });
+
+        // Handle form submission for mood selection (by categories)
+        categoryForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const mood = selectMood.value;
+
+            if (mood !== 'select') {
+                findPlaylistsByMood(mood);
+            } else {
+                alert("Please select a mood.");
+            }
+        });
+
+        // Camera Mood Detection
+        const videoElement = document.getElementById('video');
+        const captureButton = document.getElementById('btn-capture');
+        let videoStream = null;
+
+        // Start camera stream
+        async function startCamera() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: true
+                });
+                videoElement.srcObject = videoStream;
+            } catch (error) {
+                console.error("Error accessing camera: ", error);
+            }
+        }
+
+        // Stop camera stream
+        function stopCamera() {
+            if (videoStream) {
+                let tracks = videoStream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+        }
+
+        // Detect mood based on face expression
+        async function detectMoodFromCamera() {
+            await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
+            await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+            await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+
+            const detections = await faceapi.detectAllFaces(videoElement).withFaceLandmarks().withFaceDescriptors();
+            
+            if (detections.length > 0) {
+                // Assuming you have a simple logic to determine mood from facial expressions, 
+                // here we will trigger a mock mood. Replace with actual logic.
+                const mood = 'happy'; // Replace with actual mood detection
+                findPlaylistsByMood(mood);
+            } else {
+                alert('No face detected. Please try again.');
+            }
+        }
+
+        // Detect mood on button click (camera mode)
+        captureButton.addEventListener('click', () => {
+            detectMoodFromCamera();
+        });
+
+        // Function to find playlists based on mood
+        function findPlaylistsByMood(mood) {
+            console.log("Searching playlists for mood: ", mood);
+
+            // Call Spotify API or your server to fetch playlists based on mood
+            // Placeholder: You can add the actual implementation to fetch playlists
+        }
+
+        // Start the camera when camera mode is selected
+        btnCameraMode.addEventListener('click', startCamera);
+
+        // Stop the camera when switching back to category mode
+        btnCategoryMode.addEventListener('click', stopCamera);
+    </script>
+    <style>
     /* Add a max height and enable scrolling for the playlist list container */
     .playlist-list-container {
         max-height: 400px; /* You can adjust the height as needed */
@@ -144,3 +257,4 @@
         border-bottom: 1px solid #ddd;
     }
 </style>
+</x-app-layout>
