@@ -36,6 +36,16 @@ const APIController = (function() {
         return data;
     };
 
+    const _getPlaylistTracks = async (token, playlistId) => {
+        const result = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=5`, {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        const data = await result.json();
+        return data.items;
+    };
+
     return {
         getToken() {
             return _getToken();
@@ -45,6 +55,9 @@ const APIController = (function() {
         },
         getPlaylistDetails(token, playlistId) {
             return _getPlaylistDetails(token, playlistId);
+        },
+        getPlaylistTracks(token, playlistId) {
+            return _getPlaylistTracks(token, playlistId);
         }
     };
 })();
@@ -55,7 +68,8 @@ const UIController = (function() {
         buttonSubmit: '#btn_submit',
         divPlaylistList: '.playlist-list',
         divPlaylistDetail: '#playlist-detail',
-        hfToken: '#hidden_token'
+        hfToken: '#hidden_token',
+        playlistListContainer: '.playlist-list-container'
     };
 
     return {
@@ -64,15 +78,16 @@ const UIController = (function() {
                 mood: document.querySelector(DOMElements.selectMood),
                 submit: document.querySelector(DOMElements.buttonSubmit),
                 playlists: document.querySelector(DOMElements.divPlaylistList),
-                playlistDetail: document.querySelector(DOMElements.divPlaylistDetail)
+                playlistDetail: document.querySelector(DOMElements.divPlaylistDetail),
+                playlistListContainer: document.querySelector(DOMElements.playlistListContainer)
             };
         },
 
         createPlaylist(id, name, imageUrl) {
             const html = `
-                <a href="#" class="list-group-item list-group-item-action" id="${id}">
-                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Cover" class="img-thumbnail mr-2" style="width:50px; height:50px;">
-                    ${name}
+                <a href="#" class="playlist-item" id="${id}">
+                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Cover" class="playlist-image">
+                    <span class="playlist-name">${name}</span>
                 </a>`;
             document.querySelector(DOMElements.divPlaylistList).insertAdjacentHTML('beforeend', html);
         },
@@ -80,12 +95,26 @@ const UIController = (function() {
         createPlaylistDetail(imageUrl, name, description) {
             const detailDiv = document.querySelector(DOMElements.divPlaylistDetail);
             detailDiv.innerHTML = `
-                <div>
-                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Image" style="width:100%;">
-                    <h5>${name}</h5>
+                <div class="playlist-detail-container">
+                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Image">
+                    <h3>${name}</h3>
                     <p>${description || 'No description available.'}</p>
                 </div>
             `;
+        },
+
+        createPlaylistTracks(tracks) {
+            let trackListHTML = '<div class="playlist-tracks">';
+            tracks.forEach(track => {
+                trackListHTML += `
+                    <div class="track">
+                        <span>${track.track.name}</span>
+                        <span>${track.track.artists[0].name}</span>
+                    </div>
+                `;
+            });
+            trackListHTML += '</div>';
+            document.querySelector(DOMElements.divPlaylistDetail).insertAdjacentHTML('beforeend', trackListHTML);
         },
 
         resetPlaylistDetail() {
@@ -103,6 +132,14 @@ const UIController = (function() {
 
         getStoredToken() {
             return document.querySelector(DOMElements.hfToken).value;
+        },
+
+        hidePlaylists() {
+            this.inputField().playlistListContainer.style.display = 'none';
+        },
+
+        showPlaylists() {
+            this.inputField().playlistListContainer.style.display = 'grid';
         }
     };
 })();
@@ -110,7 +147,6 @@ const UIController = (function() {
 const APPController = (function(UICtrl, APICtrl) {
     const DOMInputs = UICtrl.inputField();
 
-    // Expanded mood options
     const moodQueries = {
         happy: 'happy',
         sad: 'sad',
@@ -118,8 +154,9 @@ const APPController = (function(UICtrl, APICtrl) {
         calm: 'calm relaxation',
         romantic: 'romantic love',
         focus: 'focus concentration',
-        party: 'party dance',
-        workout: 'workout exercise'
+        angry: 'angry',
+        workout: 'workout exercise',
+        gaming: 'gaming'
     };
 
     const loadPlaylists = async (mood) => {
@@ -158,13 +195,16 @@ const APPController = (function(UICtrl, APICtrl) {
 
         if (playlistId) {
             const playlist = await APICtrl.getPlaylistDetails(token, playlistId);
+            const tracks = await APICtrl.getPlaylistTracks(token, playlistId);
 
             if (playlist) {
+                UICtrl.hidePlaylists();
                 UICtrl.createPlaylistDetail(
                     playlist.images?.[0]?.url || 'placeholder.jpg',
                     playlist.name,
                     playlist.description || 'No description available.'
                 );
+                UICtrl.createPlaylistTracks(tracks);
             }
         }
     });
