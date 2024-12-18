@@ -8,9 +8,21 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-8">
+                <!-- Camera and Snapshot Section -->
+                <div class="mb-8">
+                    <label class="block text-gray-700 text-lg font-medium mb-2">Capture Your Mood:</label>
+                    <div class="flex flex-col items-center space-y-4">
+                        <video id="video" autoplay playsinline class="hidden border rounded-md w-full max-w-md"></video>
+                        <canvas id="snapshot" class="hidden"></canvas>
+                        <button id="capture-btn" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors">
+                            Capture Image
+                        </button>
+                        <p id="mood-detection-result" class="text-gray-600 text-lg mt-4"></p>
+                    </div>
+                </div>
+
                 <!-- Form for Mood Category Selection -->
                 <form id="category-form" class="space-y-6">
-                    <input type="hidden" id="hidden_token">
                     <div class="mb-4">
                         <label for="select_mood" class="block text-gray-700 text-lg font-medium">Mood:</label>
                         <select id="select_mood" class="block w-full mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
@@ -44,124 +56,9 @@
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <!-- Hidden Token Input Field for Storing Spotify Token -->
+    <input type="hidden" id="hidden_token" value="">
+
     <script src="spotify.js"></script>
-    <script>
-        // Handle form submission for mood selection (by categories)
-        const categoryForm = document.getElementById('category-form');
-        const selectMood = document.getElementById('select_mood');
-
-        categoryForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            const mood = selectMood.value;
-
-            if (mood !== 'select') {
-                findPlaylistsByMood(mood);
-            } else {
-                alert("Please select a mood.");
-            }
-        });
-
-        // Function to find playlists based on mood
-        function findPlaylistsByMood(mood) {
-            console.log("Searching playlists for mood: ", mood);
-
-            // Call Spotify API or your server to fetch playlists based on mood
-            // Placeholder: You can add the actual implementation to fetch playlists
-        }
-    </script>
-    <style>
-        /* Add a max height and enable scrolling for the playlist list container */
-        .playlist-list-container {
-            max-height: 400px; /* You can adjust the height as needed */
-            overflow-y: auto; /* Enables vertical scrolling when content overflows */
-            scroll-behavior: smooth; /* Smooth scrolling when using the wheel */
-        }
-
-        /* Optional: Adding a subtle scrollbar appearance */
-        .playlist-list-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .playlist-list-container::-webkit-scrollbar-thumb {
-            background-color: #48BB78;
-            border-radius: 10px;
-        }
-
-        .playlist-list-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        /* Style for the playlist image */
-        .playlist-image {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 50%;
-            border: 3px solid #ccc;
-            transition: transform 0.3s ease, border-color 0.3s ease;
-        }
-
-        /* Hover effect for playlist image */
-        .playlist-item:hover .playlist-image {
-            transform: scale(1.05); /* Slight zoom effect */
-            border-color: #48BB78; /* Green border on hover */
-        }
-
-        /* Style for the playlist item */
-        .playlist-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.3s ease;
-        }
-
-        /* Hover effect for the playlist item */
-        .playlist-item:hover {
-            transform: translateY(-5px); /* Slight lift effect */
-        }
-
-        .playlist-name {
-            margin-top: 10px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #333;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            overflow: hidden;
-            width: 100px;
-        }
-
-        .playlist-detail-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .playlist-detail-container img {
-            width: 200px;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 50%;
-        }
-
-        .playlist-tracks {
-            margin-top: 20px;
-            text-align: left;
-            max-width: 400px;
-            width: 100%;
-        }
-
-        .track {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid #ddd;
-        }
-    </style>
+    <script src="camera.js"></script>
 </x-app-layout>
