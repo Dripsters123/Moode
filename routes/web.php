@@ -1,8 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SpotifyController;
-use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -18,4 +18,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Route for the categories view
+Route::get('/categories', function () {
+    return view('categories');
+})->middleware(['auth', 'verified'])->name('categories');
+
+Route::middleware('auth')->group(function () {
+    Route::post('/save-to-history', [SpotifyController::class, 'saveToHistory']);
+    Route::get('/history', [SpotifyController::class, 'getHistory'])->name('history');
+});
 require __DIR__.'/auth.php';
