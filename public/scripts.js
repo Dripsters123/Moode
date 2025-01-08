@@ -1,3 +1,58 @@
+let detectedEmotion = '';  // Declare `detectedEmotion` at the top level to share across different parts
+
+// Camera and face detection setup
+const run = async () => {
+    try {
+        // Start the camera stream
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+        });
+
+        const videoFeedEl = document.getElementById('video-feed');
+        videoFeedEl.srcObject = stream;
+
+        // Load pre-trained face-api models
+        await Promise.all([
+            faceapi.nets.ssdMobilenetv1.loadFromUri('./models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('./models'),
+            faceapi.nets.ageGenderNet.loadFromUri('./models'),
+            faceapi.nets.faceExpressionNet.loadFromUri('./models'),
+        ]);
+
+        // Make the canvas the same size as the video
+        const canvas = document.getElementById('canvas');
+        canvas.style.left = videoFeedEl.offsetLeft;
+        canvas.style.top = videoFeedEl.offsetTop;
+        canvas.height = videoFeedEl.height;
+        canvas.width = videoFeedEl.width;
+
+        // Set up facial recognition and emotion detection
+        setInterval(async () => {
+            const faceData = await faceapi.detectAllFaces(videoFeedEl)
+                .withFaceLandmarks()
+                .withFaceExpressions();
+
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+
+            // Resize and draw detections
+            const resizedData = faceapi.resizeResults(faceData, videoFeedEl);
+            faceapi.draw.drawDetections(canvas, resizedData);
+            faceapi.draw.drawFaceLandmarks(canvas, resizedData);
+            faceapi.draw.drawFaceExpressions(canvas, resizedData);
+
+            // Get the dominant emotion
+            faceData.forEach(face => {
+                const expressions = face.expressions;
+                detectedEmotion = Object.keys(expressions).reduce((a, b) => expressions[a] > expressions[b] ? a : b);
+            });
+        }, 200);
+    } catch (error) {
+        console.error("Error starting the camera", error);
+    }
+};
+
 // Spotify API Controller
 const APIController = (function () {
     const clientId = '0a5168c0671c4c92a545cdabceebb87c';
@@ -22,7 +77,21 @@ const APIController = (function () {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await result.json();
-        return data.playlists.items;
+        if (data && data.playlists && data.playlists.items) {
+            return data.playlists.items;
+        } else {
+            console.error("Error fetching playlists:", data);
+            return [];
+        }
+    };
+
+    const _getPlaylistTracks = async (token, playlistId) => {
+        const result = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=5`, {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await result.json();
+        return data.items;
     };
 
     return {
@@ -31,6 +100,9 @@ const APIController = (function () {
         },
         searchPlaylists(token, query) {
             return _searchPlaylists(token, query);
+        },
+        getPlaylistTracks(token, playlistId) {
+            return _getPlaylistTracks(token, playlistId);
         }
     };
 })();
@@ -48,7 +120,7 @@ const UIController = (function () {
         createPlaylist(id, name, imageUrl) {
             const html = `
                 <div class="playlist-item" id="${id}">
-                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Cover" class="playlist-image">
+                    <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Cover" class="playlist-image" style="width: 100px; height: 100px; object-fit: cover;">
                     <span class="playlist-name">${name}</span>
                 </div>
             `;
@@ -61,6 +133,20 @@ const UIController = (function () {
 
         resetPlaylists() {
             document.querySelector('#playlist-list').innerHTML = '';
+        },
+
+        showPlaylistTracks(tracks) {
+            const trackListHTML = tracks.map(track => `
+                <div class="track-item">
+                    <span class="track-name">${track.track.name}</span>
+                    <span class="track-artist">${track.track.artists[0].name}</span>
+                </div>
+            `).join('');
+
+            document.querySelector('.playlist-list-container').innerHTML = `
+                <h2>Top 5 Songs</h2>
+                <div class="track-list">${trackListHTML}</div>
+            `;
         }
     };
 })();
@@ -85,22 +171,26 @@ const APPController = (function (UICtrl, APICtrl) {
 
         if (playlists && playlists.length > 0) {
             playlists.forEach(playlist => {
-                // Ensure playlist is not null or undefined, and has required properties
                 if (playlist && playlist.id && playlist.name) {
-                    // Ensure the images property exists and is an array
                     const imageUrl = (playlist.images && playlist.images.length > 0) 
                         ? playlist.images[0].url 
-                        : 'placeholder.jpg'; // Use a fallback image if no image exists
+                        : 'placeholder.jpg';
 
-                    // Create the playlist in the UI
                     UICtrl.createPlaylist(playlist.id, playlist.name, imageUrl);
                 } else {
-                    // If playlist is missing key properties, log it
                     console.error('Missing required properties in playlist:', playlist);
                 }
             });
+
+            // Add click event to each playlist
+            document.querySelectorAll('.playlist-item').forEach(item => {
+                item.addEventListener('click', async (e) => {
+                    const playlistId = e.target.closest('.playlist-item').id;
+                    const tracks = await APICtrl.getPlaylistTracks(token, playlistId);
+                    UICtrl.showPlaylistTracks(tracks);
+                });
+            });
         } else {
-            // If no playlists are found, display a message
             UICtrl.inputField().playlistList.innerHTML = `
                 <p class="text-muted">No playlists found for this mood. Please try another mood.</p>
             `;
@@ -109,7 +199,7 @@ const APPController = (function (UICtrl, APICtrl) {
 
     // Listen for the 'Get Playlists' button click
     DOMInputs.submit.addEventListener('click', async () => {
-        const mood = detectedEmotion || 'neutral';  // Use detected emotion or default to 'neutral'
+        const mood = detectedEmotion || 'neutral';
         await loadPlaylists(mood);
         UICtrl.showPlaylists();
     });
@@ -124,57 +214,6 @@ const APPController = (function (UICtrl, APICtrl) {
     };
 })(UIController, APIController);
 
-// Emotion detection setup (face-api.js integration)
-let detectedEmotion = 'neutral'; // Default emotion
-
-const run = async () => {
-    // Start the camera stream
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-    });
-
-    const videoFeedEl = document.getElementById('video-feed');
-    videoFeedEl.srcObject = stream;
-
-    // Load pre-trained face-api models
-    await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri('./models'),
-        faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
-        faceapi.nets.faceRecognitionNet.loadFromUri('./models'),
-        faceapi.nets.ageGenderNet.loadFromUri('./models'),
-        faceapi.nets.faceExpressionNet.loadFromUri('./models'),
-    ]);
-
-    // Make the canvas the same size as the video
-    const canvas = document.getElementById('canvas');
-    canvas.style.left = videoFeedEl.offsetLeft;
-    canvas.style.top = videoFeedEl.offsetTop;
-    canvas.height = videoFeedEl.height;
-    canvas.width = videoFeedEl.width;
-
-    // Set up facial recognition and emotion detection
-    setInterval(async () => {
-        const faceData = await faceapi.detectAllFaces(videoFeedEl)
-            .withFaceLandmarks()
-            .withFaceExpressions();
-
-        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-
-        // Resize and draw detections
-        const resizedData = faceapi.resizeResults(faceData, videoFeedEl);
-        faceapi.draw.drawDetections(canvas, resizedData);
-        faceapi.draw.drawFaceLandmarks(canvas, resizedData);
-        faceapi.draw.drawFaceExpressions(canvas, resizedData);
-
-        // Get the dominant emotion
-        faceData.forEach(face => {
-            const expressions = face.expressions;
-            detectedEmotion = Object.keys(expressions).reduce((a, b) => expressions[a] > expressions[b] ? a : b);
-        });
-    }, 200);
-};
-
-// Initialize the app
+// Initialize the app and start the camera
 APPController.init();
 run();  // Run the camera and face detection

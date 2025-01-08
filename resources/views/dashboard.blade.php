@@ -22,17 +22,18 @@
             gap: 20px;
         }
         .playlist-item {
-            display: flex;
-            align-items: center;
+            text-align: center;
+            border: 1px solid #ddd;
             padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            cursor: pointer;
         }
-        .playlist-image {
-            width: 50px;
-            height: 50px;
-            margin-right: 10px;
-            border-radius: 4px;
+        .playlist-item img {
+            width: 100%;
+            height: auto;
+        }
+        .playlist-name {
+            margin-top: 10px;
+            font-weight: bold;
         }
     </style>
 </head>
