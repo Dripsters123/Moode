@@ -96,12 +96,10 @@ const UIController = (function () {
 
     createPlaylist(id, name, imageUrl) {
       const html = `
-                <a href="#" class="playlist-item" id="${id}">
-                    <img src="${
-                      imageUrl || "placeholder.jpg"
-                    }" alt="Playlist Cover" class="playlist-image">
-                    <span class="playlist-name">${name}</span>
-                </a>`;
+        <a href="#" class="playlist-item" id="${id}">
+          <img src="${imageUrl || 'placeholder.jpg'}" alt="Playlist Cover" class="playlist-image rounded-full">
+          <span class="playlist-name">${name}</span>
+        </a>`;
       document
         .querySelector(DOMElements.divPlaylistList)
         .insertAdjacentHTML("beforeend", html);
@@ -255,13 +253,13 @@ const APPController = (function (UICtrl, APICtrl) {
     e.preventDefault();
     const token = UICtrl.getStoredToken();
     const playlistId = e.target.closest("a")?.id;
-
+  
     if (playlistId) {
       const playlist = await APICtrl.getPlaylistDetails(token, playlistId);
       const tracks = await APICtrl.getPlaylistTracks(token, playlistId);
-
+  
       if (playlist) {
-        UICtrl.hidePlaylists();
+        UICtrl.hidePlaylists(); // Hide the playlist list
         UICtrl.createPlaylistDetail(
           playlist.images?.[0]?.url || "placeholder.jpg",
           playlist.name,
@@ -271,6 +269,7 @@ const APPController = (function (UICtrl, APICtrl) {
       }
     }
   });
+  
 
   return {
     init() {
