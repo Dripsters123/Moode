@@ -18,7 +18,7 @@ const APIController = (function () {
 
   const _searchPlaylists = async (token, query) => {
     const result = await fetch(
-      `https://api.spotify.com/v1/search?q=${query}&type=playlist&limit=20`,
+      `https://api.spotify.com/v1/search?q=${query}&type=playlist&limit=7`,
       {
         method: "GET",
         headers: { Authorization: "Bearer " + token },

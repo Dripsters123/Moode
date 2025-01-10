@@ -30,8 +30,8 @@
                 </form>
 
                 <!-- Playlist Section -->
-                <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 playlist-list-container">
-                    <div class="playlist-list flex space-x-4"></div>
+                <div class="mt-8 playlist-list-container">
+                    <div class="playlist-list flex flex-wrap gap-6 overflow-x-hidden"></div>
                 </div>
 
                 <!-- Playlist Detail Section -->
@@ -41,12 +41,41 @@
                     </button>
                 </div>
 
-               
-                </div>
             </div>
         </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     <script src="spotify.js"></script>
+
+    <style>
+        /* For mobile view - horizontal scroll */
+        @media (max-width: 768px) {
+            .playlist-list {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 10px; /* Adjust the gap between items */
+            }
+        }
+
+        /* For larger screen sizes */
+        @media (min-width: 769px) {
+            .playlist-list {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                gap: 20px;
+                overflow-x: hidden; /* Disable horizontal scroll for larger screens */
+            }
+        }
+
+        /* Styling for the playlist images */
+        .playlist-list img {
+            width: 100%; /* Make image fill the width of the container */
+            height: 200px; /* Fixed height for all images */
+            object-fit: cover; /* Ensure images maintain aspect ratio while covering the area */
+            border-radius: 8px; /* Optional: add border-radius for rounded corners */
+        }
+    </style>
 </x-app-layout>

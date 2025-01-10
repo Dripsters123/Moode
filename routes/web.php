@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SpotifyController;
+use App\Http\Controllers\ImageController;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -27,4 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/save-to-history', [SpotifyController::class, 'saveToHistory']);
     Route::get('/history', [SpotifyController::class, 'getHistory'])->name('history');
 });
+Route::get('/image', function () {
+    return view('image'); // This refers to resources/views/image.blade.php
+})->middleware(['auth', 'verified'])->name('image');
 require __DIR__.'/auth.php';
